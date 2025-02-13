@@ -3,22 +3,27 @@
 namespace App\Imports;
 
 use App\Models\User;
+use Illuminate\Support\Facades\Validator;
 use Maatwebsite\Excel\Concerns\ToModel;
-use Illuminate\Contracts\Queue\ShouldQueue; 
+use Illuminate\Contracts\Queue\ShouldQueue;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
 
-class UsersImport implements ToModel,WithHeadingRow,WithChunkReading,ShouldQueue
+class UsersImport implements ToModel, WithHeadingRow, WithChunkReading, ShouldQueue
 {
+    public $failedRows = []; // ✅ Declare failedRows property
+
     /**
-    * @param array $row
-    *
-    * @return \Illuminate\Database\Eloquent\Model|null
-    */
+     * Define the chunk size for processing.
+     */
     public function chunkSize(): int
     {
-        return 2; // Process 1000 rows at a time
+        return 1000; // ✅ Efficient batch processing
     }
+
+    /**
+     * Process each row.
+     */
     public function model(array $row)
     {
         $validator = Validator::make($row, [
@@ -28,18 +33,18 @@ class UsersImport implements ToModel,WithHeadingRow,WithChunkReading,ShouldQueue
         ]);
 
         if ($validator->fails()) {
-            // Store failed rows with errors
+            // ✅ Store failed rows for later retrieval
             $this->failedRows[] = [
                 'row' => $row,
                 'errors' => $validator->errors()->all(),
             ];
             return null; // Skip inserting this row
         }
+
         return new User([
-            
-            'name'=>$row['name'],
-            'email'=>$row['email'],
-            'password'=>bcrypt($row['password']),
+            'name' => $row['name'],
+            'email' => $row['email'],
+            'password' => bcrypt($row['password']),
         ]);
     }
 }
